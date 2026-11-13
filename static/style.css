@@ -1,0 +1,26 @@
+:root { font-family: Arial, Helvetica, sans-serif; color: #15351f; background: #f2f6f1; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(145deg, #eaf2e8, #ffffff 55%, #f7f0d7); }
+.page { width: min(100% - 28px, 560px); margin: 28px auto; }
+.card { background: #fff; border: 1px solid #dce7d9; border-radius: 24px; padding: 28px; box-shadow: 0 16px 45px rgba(0, 48, 20, .10); }
+.brand { color: #06451e; font-weight: 900; letter-spacing: .04em; font-size: 19px; }
+.brand span { color: #c69b00; }
+.eyebrow { color: #947400; font-size: 11px; font-weight: 800; letter-spacing: .12em; margin: 8px 0 22px; }
+h1 { font-size: clamp(28px, 7vw, 40px); line-height: 1.12; margin: 0 0 12px; color: #073f1c; }
+h1 span { color: #b58b00; }
+.intro { color: #536258; line-height: 1.55; margin-bottom: 25px; }
+form { display: grid; gap: 10px; }
+label { font-weight: 800; margin-top: 8px; }
+input[type="text"], input[type="file"] { width: 100%; border: 1px solid #cbd8cc; border-radius: 12px; padding: 14px; background: #fbfdfb; font-size: 16px; }
+input:focus { outline: 3px solid rgba(189, 151, 0, .22); border-color: #a88700; }
+.hint { color: #657168; font-size: 13px; margin: 0 0 8px; line-height: 1.45; }
+button { margin-top: 12px; border: 0; border-radius: 14px; padding: 17px 14px; background: linear-gradient(100deg, #06451e, #08702e); color: #fff; font-size: 16px; font-weight: 900; letter-spacing: .03em; cursor: pointer; }
+button:hover { filter: brightness(1.08); }
+.event { margin-top: 25px; padding: 17px; border-radius: 14px; background: #f1f6ef; display: grid; gap: 7px; text-align: center; }
+.event strong { color: #06451e; }
+.event span { color: #4d5d51; font-size: 14px; }
+.event .free { color: #8b6b00; font-weight: 900; letter-spacing: .08em; }
+.privacy { font-size: 12px; color: #68756c; line-height: 1.45; text-align: center; margin: 18px 4px 0; }
+.error { background: #fff0ef; color: #9c2119; border: 1px solid #f1c4c0; padding: 12px; border-radius: 10px; margin-bottom: 14px; }
+footer { text-align: center; color: #647166; font-size: 12px; padding: 18px 8px; }
+@media (max-width: 420px) { .card { padding: 21px; } .brand { font-size: 16px; } }

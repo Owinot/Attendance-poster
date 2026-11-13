@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06421d">
+  <title>Create Your Career Summit Poster</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="brand">ANNUAL CAREER SUMMIT <span>2026</span></div>
+      <p class="eyebrow">BUILDING SKILLS, CREATING OPPORTUNITIES</p>
+      <h1>Create your<br><span>“I WILL BE ATTENDING”</span> poster</h1>
+      <p class="intro">Add your name and a photograph. Your personalised poster will be generated automatically.</p>
+
+      {% if error %}
+        <div class="error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <form action="{{ url_for('generate') }}" method="post" enctype="multipart/form-data">
+        <label for="name">Your full name</label>
+        <input id="name" name="name" type="text" maxlength="45" placeholder="e.g. Jane Wanjiku" required>
+
+        <label for="photo">Your photograph</label>
+        <input id="photo" name="photo" type="file" accept="image/jpeg,image/png" required>
+        <p class="hint">Use a clear photo where your face is visible. JPG or PNG, maximum 8 MB.</p>
+
+        <button type="submit">GENERATE MY POSTER</button>
+      </form>
+
+      <div class="event">
+        <strong>27th–28th November 2026</strong>
+        <span>The Door Christian Fellowship Church, Ayany Estate</span>
+        <span class="free">FREE ENTRY</span>
+      </div>
+      <p class="privacy">Your photo is processed to create your poster and is not saved as a public gallery.</p>
+    </section>
+    <footer>Annual Career Summit 2026 · Together for a Brighter Career Future</footer>
+  </main>
+</body>
+</html>
