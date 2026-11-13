@@ -64,3 +64,4 @@ Set `PUBLIC_BASE_URL` in the service's environment variables to the deployed HTT
   app URL, not the old Google Forms `/edit` URL.
 # Attendance-poster
 # Attendance-poster
+# Attendance-poster
