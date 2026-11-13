@@ -63,3 +63,4 @@ Set `PUBLIC_BASE_URL` in the service's environment variables to the deployed HTT
 - The QR code printed on the final public campaign poster should point to the deployed
   app URL, not the old Google Forms `/edit` URL.
 # Attendance-poster
+# Attendance-poster
