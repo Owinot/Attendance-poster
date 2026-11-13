@@ -11,6 +11,7 @@ app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB upload limit
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "poster_template.png")
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
+EVENT_TIME = "8:00 AM - 5:00 PM"
 
 # Coordinates are tuned to the supplied 1024 x 1536 summit poster.
 PHOTO_BOX = (285, 548, 735, 998)      # circular photo area inside the gold frame
@@ -88,6 +89,12 @@ def create_poster(name, uploaded_photo):
     y = NAME_BOX[1] + ((NAME_BOX[3] - NAME_BOX[1]) - text_h) / 2 - bbox[1]
     draw.text((x, y), clean_name, font=font, fill=(255, 255, 255))
 
+    time_font = load_font(24)
+    time_bbox = draw.textbbox((0, 0), EVENT_TIME, font=time_font)
+    time_x = 178 - time_bbox[0]
+    time_y = 1214 - time_bbox[1]
+    draw.text((time_x, time_y), EVENT_TIME, font=time_font, fill=(255, 255, 255))
+
     # Replace the template's sample QR with a real QR pointing to the live form.
     qr_size = 176
     qr_img = make_qr(PUBLIC_BASE_URL + "/", qr_size)
@@ -105,7 +112,7 @@ def create_poster(name, uploaded_photo):
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", event_time=EVENT_TIME)
 
 
 @app.post("/generate")
