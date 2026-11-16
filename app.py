@@ -14,9 +14,9 @@ ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
 EVENT_TIME = "8:00 AM - 5:00 PM"
 
 # Coordinates are tuned to the supplied 1024 x 1536 summit poster.
-PHOTO_BOX = (310, 573, 710, 973)      # circular photo area inside the gold frame
+PHOTO_BOX = (285, 548, 735, 998)      # circular photo area inside the gold frame
 PHOTO_CENTER = (510, 773)
-PHOTO_RADIUS = 200
+PHOTO_RADIUS = 224
 NAME_BOX = (172, 1010, 852, 1083)     # inside the existing green-and-gold name plaque
 QR_BOX = (680, 1265, 872, 1445)       # white QR panel at the bottom-right
 
