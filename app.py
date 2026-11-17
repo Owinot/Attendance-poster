@@ -28,10 +28,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(BASE_DIR, "poster_template.png")
 
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
-DEFAULT_QR_TARGET_URL = (
-    "https://docs.google.com/forms/d/"
-    "1q202bKhOpQbvH6hCKrB0-V8rhoF_VD0CvLxRJRWD410/edit#responses"
-)
+DEFAULT_QR_TARGET_URL = "https://attendance-poster.onrender.com/"
 QR_TARGET_URL = os.environ.get("QR_TARGET_URL", DEFAULT_QR_TARGET_URL)
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}

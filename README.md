@@ -40,20 +40,20 @@ venue remain fixed.
 
 6. Open `http://127.0.0.1:5000`.
 
-## Important: make the QR code open the registration form
+## Important: make the QR code open the deployed app
 
-The QR code on the generated poster should point to the event registration form, not to a
-local development URL. The app defaults to the official Google Form:
-`https://docs.google.com/forms/d/1q202bKhOpQbvH6hCKrB0-V8rhoF_VD0CvLxRJRWD410/edit#responses`
+The QR code on the generated poster should point to the live public app, not to a local
+development URL. The app defaults to the deployed site:
+`https://attendance-poster.onrender.com/`
 
 If you need to override it in a different environment, set `QR_TARGET_URL` in the service
-configuration to the correct public form URL before redeploying.
+configuration to the correct public URL before redeploying.
 
 For Render, a typical start command is:
 ```bash
 gunicorn app:app
 ```
-Set `QR_TARGET_URL` in the service's environment variables to the public Google Form URL.
+Set `QR_TARGET_URL` in the service's environment variables to the public app URL if needed.
 
 ## Privacy and production notes
 
