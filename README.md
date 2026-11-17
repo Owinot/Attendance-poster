@@ -40,18 +40,20 @@ venue remain fixed.
 
 6. Open `http://127.0.0.1:5000`.
 
-## Important: make the QR code work for everyone
+## Important: make the QR code open the registration form
 
-A QR code cannot point to `127.0.0.1` for public visitors. Deploy this app to a public
-HTTPS address first, then set the environment variable `PUBLIC_BASE_URL` to that
-exact public address (for example, `https://your-app.example.com`) and redeploy.
-The poster generator will then place a real QR code linking to the public form.
+The QR code on the generated poster should point to the event registration form, not to a
+local development URL. The app defaults to the official Google Form:
+`https://docs.google.com/forms/d/1q202bKhOpQbvH6hCKrB0-V8rhoF_VD0CvLxRJRWD410/edit#responses`
+
+If you need to override it in a different environment, set `QR_TARGET_URL` in the service
+configuration to the correct public form URL before redeploying.
 
 For Render, a typical start command is:
 ```bash
 gunicorn app:app
 ```
-Set `PUBLIC_BASE_URL` in the service's environment variables to the deployed HTTPS URL.
+Set `QR_TARGET_URL` in the service's environment variables to the public Google Form URL.
 
 ## Privacy and production notes
 
@@ -60,8 +62,5 @@ Set `PUBLIC_BASE_URL` in the service's environment variables to the deployed HTT
 - The app limits uploads to 8 MB and accepts JPG/PNG images.
 - Before sharing widely, deploy over HTTPS, test on several phones, and consider adding
   rate limiting and a short privacy notice/contact for questions.
-- The QR code printed on the final public campaign poster should point to the deployed
-  app URL, not the old Google Forms `/edit` URL.
-# Attendance-poster
-# Attendance-poster
-# Attendance-poster
+- The QR code printed on the final public campaign poster should point to the
+  registration form URL configured in `QR_TARGET_URL`.
