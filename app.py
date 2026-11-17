@@ -247,17 +247,75 @@ def add_name(poster, name):
 
     draw = ImageDraw.Draw(poster)
 
-    font, lines = fit_name(draw, name, NAME_MAX_WIDTH)
+    # Large stacked title matching the sample poster.
+    title_lines = ["I WILL BE", "ATTENDING"]
+    title_font = load_font(92)
+    while True:
+        widest = max(
+            draw.textbbox((0, 0), line, font=title_font)[2]
+            for line in title_lines
+        )
+        if widest <= 800:
+            break
+        title_font = load_font(title_font.size - 2)
+
+    banner_top = 215
+    banner_left = 130
+    banner_right = 894
+    banner_bottom = 520
+    draw.rounded_rectangle(
+        (banner_left, banner_top, banner_right, banner_bottom),
+        radius=60,
+        fill=(0, 77, 28),
+        outline=(218, 165, 32),
+        width=13,
+    )
+
+    total_text_height = 0
+    for line in title_lines:
+        bbox = draw.textbbox((0, 0), line, font=title_font)
+        total_text_height += bbox[3] - bbox[1]
+    total_text_height += 12
+
+    line_y = banner_top + 120
+    for line in title_lines:
+        bbox = draw.textbbox((0, 0), line, font=title_font)
+        line_height = bbox[3] - bbox[1]
+        line_x = NAME_CENTER[0]
+        draw.text(
+            (line_x, line_y + line_height / 2),
+            line,
+            font=title_font,
+            fill=(255, 255, 255),
+            anchor="mm",
+            stroke_width=10,
+            stroke_fill=(218, 165, 32),
+        )
+        line_y += line_height + 12
+
+    # Name plaque beneath the photo.
+    plaque_left = 150
+    plaque_top = 1015
+    plaque_right = 874
+    plaque_bottom = 1133
+
+    draw.rounded_rectangle(
+        (plaque_left, plaque_top, plaque_right, plaque_bottom),
+        radius=70,
+        fill=(0, 92, 34),
+        outline=(218, 165, 32),
+        width=11,
+    )
+
+    display_name = " ".join(name.split()).upper()
+    font, lines = fit_name(draw, display_name, 620)
     wrapped_name = "\n".join(lines)
     bbox = draw.multiline_textbbox((0, 0), wrapped_name, font=font, spacing=NAME_LINE_SPACING)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
 
-    # Keep the name inside the plaque band beneath the photo.
-    safe_top = max(NAME_CENTER[1] - text_height // 2, NAME_MIN_TOP + NAME_TOP_PADDING)
-    safe_bottom = NAME_MAX_BOTTOM - text_height - NAME_BOTTOM_PADDING
-    text_top = min(max(safe_top, NAME_MIN_TOP), safe_bottom)
     text_left = NAME_CENTER[0] - text_width / 2
+    text_top = plaque_top + (plaque_bottom - plaque_top - text_height) / 2 + 6
 
     draw.multiline_text(
         (text_left, text_top),
@@ -266,7 +324,8 @@ def add_name(poster, name):
         fill=NAME_COLOR,
         align="center",
         spacing=NAME_LINE_SPACING,
-        stroke_width=0,
+        stroke_width=4,
+        stroke_fill=(218, 165, 32),
     )
 
     return poster
