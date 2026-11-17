@@ -25,47 +25,37 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 TEMPLATE_PATH = os.path.join(BASE_DIR, "poster_template.png")
 
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
-
 QR_TARGET_URL = os.environ.get("QR_TARGET_URL", PUBLIC_BASE_URL)
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
-
 EVENT_TIME = "8:00 AM - 5:00 PM"
-
 
 # --------------------------------------------------
 # POSTER COORDINATES
-# Adjust these if your template is positioned differently.
 # Designed for a 1024 x 1536 poster.
 # --------------------------------------------------
 
 PHOTO_CENTER = (510, 773)
-
 PHOTO_RADIUS = 185
-
-# This must cover the entire original sample photo and frame.
 ERASE_RADIUS = 260
 
-# QR code white panel at the bottom right.
+# QR code panel.
 QR_BOX = (680, 1265, 872, 1445)
 
-# Name position: keep the text centered inside the plaque below the photo.
-NAME_CENTER = (510, 1065)
-NAME_MAX_WIDTH = 440
-NAME_MAX_SIZE = 62
-NAME_MIN_SIZE = 22
-NAME_LINE_SPACING = 8
-NAME_TOP_PADDING = 18
-NAME_BOTTOM_PADDING = 30
-NAME_MIN_TOP = PHOTO_CENTER[1] + PHOTO_RADIUS + 20
-NAME_MAX_BOTTOM = 1205
-
-# Name text color.
+# Name plaque.
+# The original template's name banner is approximately y=995 to y=1098.
+# Cover the FULL original name area so old lettering cannot show through.
+NAME_PLAQUE = (150, 995, 874, 1098)
+NAME_CENTER = (512, 1047)
+NAME_MAX_WIDTH = 650
+NAME_MAX_SIZE = 58
+NAME_MIN_SIZE = 18
 NAME_COLOR = (255, 255, 255)
+NAME_STROKE_COLOR = (0, 57, 20)
+NAME_STROKE_WIDTH = 1
 
 
 # --------------------------------------------------
@@ -93,45 +83,38 @@ def load_font(size):
     return ImageFont.load_default()
 
 
-def wrap_name_lines(draw, name, font, max_width):
-    cleaned_name = " ".join(name.split())
+def fit_name_to_plaque(draw, name):
+    """
+    Keep the attendee's name on ONE line.
+    Reduce the font until the complete name fits inside the plaque.
+    """
+    cleaned_name = " ".join(name.split()).upper()
 
-    if not cleaned_name:
-        return [""]
-
-    words = cleaned_name.split()
-    lines = [words[0]]
-
-    for word in words[1:]:
-        candidate = f"{lines[-1]} {word}"
-        bbox = draw.textbbox((0, 0), candidate, font=font)
-        if bbox[2] - bbox[0] <= max_width:
-            lines[-1] = candidate
-        else:
-            lines.append(word)
-
-    return lines
-
-
-def fit_name(draw, name, max_width):
-    cleaned_name = " ".join(name.split())
-    if not cleaned_name:
-        return load_font(NAME_MIN_SIZE), [""]
+    plaque_left, plaque_top, plaque_right, plaque_bottom = NAME_PLAQUE
+    available_width = min(
+        NAME_MAX_WIDTH,
+        plaque_right - plaque_left - 70,
+    )
+    available_height = plaque_bottom - plaque_top - 24
 
     for size in range(NAME_MAX_SIZE, NAME_MIN_SIZE - 1, -1):
         font = load_font(size)
-        lines = wrap_name_lines(draw, cleaned_name, font, max_width)
-
-        wrapped = "\n".join(lines)
-        bbox = draw.multiline_textbbox((0, 0), wrapped, font=font, spacing=NAME_LINE_SPACING)
+        bbox = draw.textbbox(
+            (0, 0),
+            cleaned_name,
+            font=font,
+            stroke_width=NAME_STROKE_WIDTH,
+        )
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
 
-        if text_width <= max_width and text_height <= 180:
-            return font, lines
+        if text_width <= available_width and text_height <= available_height:
+            return cleaned_name, font
 
+    # The form limits names to 45 characters, so this is a final
+    # safety fallback for unusually wide names or missing font files.
     font = load_font(NAME_MIN_SIZE)
-    return font, wrap_name_lines(draw, cleaned_name, font, max_width)
+    return cleaned_name, font
 
 
 # --------------------------------------------------
@@ -140,23 +123,15 @@ def fit_name(draw, name, max_width):
 
 
 def remove_original_photo(poster):
-
-    # Convert PIL image into OpenCV format.
     image = np.array(poster.convert("RGB"))
-
     height, width = image.shape[:2]
 
     cx, cy = PHOTO_CENTER
-
-    # Create a black mask.
     mask = np.zeros((height, width), dtype=np.uint8)
 
-    # Mark the original photo and frame area.
     cv2.circle(mask, (cx, cy), ERASE_RADIUS, 255, thickness=-1)
 
-    # Reconstruct the background behind the original photo.
     cleaned = cv2.inpaint(image, mask, 7, cv2.INPAINT_TELEA)
-
     return Image.fromarray(cleaned)
 
 
@@ -166,7 +141,6 @@ def remove_original_photo(poster):
 
 
 def make_qr(url, size):
-
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -177,9 +151,15 @@ def make_qr(url, size):
     qr.add_data(url)
     qr.make(fit=True)
 
-    qr_image = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_image = qr.make_image(
+        fill_color="black",
+        back_color="white",
+    ).convert("RGB")
 
-    return qr_image.resize((size, size), Image.Resampling.NEAREST)
+    return qr_image.resize(
+        (size, size),
+        Image.Resampling.NEAREST,
+    )
 
 
 # --------------------------------------------------
@@ -188,13 +168,9 @@ def make_qr(url, size):
 
 
 def add_uploaded_photo(poster, uploaded_photo):
-
     cx, cy = PHOTO_CENTER
 
-    # Outer gold frame.
     gold_radius = PHOTO_RADIUS + 14
-
-    # Inner dark green frame.
     green_radius = PHOTO_RADIUS + 6
 
     draw = ImageDraw.Draw(poster)
@@ -209,12 +185,9 @@ def add_uploaded_photo(poster, uploaded_photo):
         fill=(0, 57, 20),
     )
 
-    # Correct the orientation of the uploaded photo.
     photo = ImageOps.exif_transpose(uploaded_photo).convert("RGB")
-
     diameter = PHOTO_RADIUS * 2
 
-    # Crop and resize the photo to a square.
     photo = ImageOps.fit(
         photo,
         (diameter, diameter),
@@ -222,17 +195,12 @@ def add_uploaded_photo(poster, uploaded_photo):
         centering=(0.5, 0.35),
     )
 
-    # Create a circular transparency mask.
     mask = Image.new("L", (diameter, diameter), 0)
-
     mask_draw = ImageDraw.Draw(mask)
-
     mask_draw.ellipse((0, 0, diameter - 1, diameter - 1), fill=255)
 
-    # Paste the photo onto the poster.
     left = cx - PHOTO_RADIUS
     top = cy - PHOTO_RADIUS
-
     poster.paste(photo, (left, top), mask)
 
     return poster
@@ -244,88 +212,33 @@ def add_uploaded_photo(poster, uploaded_photo):
 
 
 def add_name(poster, name):
-
     draw = ImageDraw.Draw(poster)
 
-    # Large stacked title matching the sample poster.
-    title_lines = ["I WILL BE", "ATTENDING"]
-    title_font = load_font(92)
-    while True:
-        widest = max(
-            draw.textbbox((0, 0), line, font=title_font)[2]
-            for line in title_lines
-        )
-        if widest <= 800:
-            break
-        title_font = load_font(title_font.size - 2)
-
-    banner_top = 215
-    banner_left = 130
-    banner_right = 894
-    banner_bottom = 520
-    draw.rounded_rectangle(
-        (banner_left, banner_top, banner_right, banner_bottom),
-        radius=60,
-        fill=(0, 77, 28),
-        outline=(218, 165, 32),
-        width=13,
-    )
-
-    total_text_height = 0
-    for line in title_lines:
-        bbox = draw.textbbox((0, 0), line, font=title_font)
-        total_text_height += bbox[3] - bbox[1]
-    total_text_height += 12
-
-    line_y = banner_top + 120
-    for line in title_lines:
-        bbox = draw.textbbox((0, 0), line, font=title_font)
-        line_height = bbox[3] - bbox[1]
-        line_x = NAME_CENTER[0]
-        draw.text(
-            (line_x, line_y + line_height / 2),
-            line,
-            font=title_font,
-            fill=(255, 255, 255),
-            anchor="mm",
-            stroke_width=10,
-            stroke_fill=(218, 165, 32),
-        )
-        line_y += line_height + 12
-
-    # Name plaque beneath the photo.
-    plaque_left = 150
-    plaque_top = 1015
-    plaque_right = 874
-    plaque_bottom = 1133
+    # Draw the attendee's name plaque over the complete old name area.
+    # This hides any sample name already printed on the template.
+    plaque_left, plaque_top, plaque_right, plaque_bottom = NAME_PLAQUE
 
     draw.rounded_rectangle(
-        (plaque_left, plaque_top, plaque_right, plaque_bottom),
-        radius=70,
-        fill=(0, 92, 34),
-        outline=(218, 165, 32),
-        width=11,
+        NAME_PLAQUE,
+        radius=55,
+        fill=(0, 70, 25),
+        outline=(245, 190, 20),
+        width=9,
     )
 
-    display_name = " ".join(name.split()).upper()
-    font, lines = fit_name(draw, display_name, 620)
-    wrapped_name = "\n".join(lines)
-    bbox = draw.multiline_textbbox((0, 0), wrapped_name, font=font, spacing=NAME_LINE_SPACING)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
+    # Fit the complete name on one line instead of wrapping it.
+    display_name, font = fit_name_to_plaque(draw, name)
 
-    text_left = NAME_CENTER[0] - text_width / 2
-    text_top = plaque_top + (plaque_bottom - plaque_top - text_height) / 2 + 6
-
-    draw.multiline_text(
-        (text_left, text_top),
-        wrapped_name,
+    # Anchor="mm" centers the actual text at this point.
+    # This avoids manual width calculations and multiline alignment issues.
+    draw.text(
+        NAME_CENTER,
+        display_name,
         font=font,
         fill=NAME_COLOR,
-        align="center",
-        spacing=NAME_LINE_SPACING,
-        stroke_width=4,
-        stroke_fill=(218, 165, 32),
+        anchor="mm",
+        stroke_width=NAME_STROKE_WIDTH,
+        stroke_fill=NAME_STROKE_COLOR,
     )
 
     return poster
@@ -337,22 +250,18 @@ def add_name(poster, name):
 
 
 def add_qr_code(poster):
-
     x1, y1, x2, y2 = QR_BOX
 
     box_width = x2 - x1
     box_height = y2 - y1
-
     qr_size = min(box_width, box_height) - 20
 
     qr_image = make_qr(QR_TARGET_URL, qr_size)
 
-    # Center QR code inside its white panel.
     left = x1 + (box_width - qr_size) // 2
     top = y1 + (box_height - qr_size) // 2
 
     poster.paste(qr_image, (left, top))
-
     return poster
 
 
@@ -362,34 +271,26 @@ def add_qr_code(poster):
 
 
 def create_poster(name, uploaded_photo):
-
-    # Check that the template exists.
     if not os.path.exists(TEMPLATE_PATH):
         raise FileNotFoundError("poster_template.png was not found.")
 
-    # Open the original poster template.
     poster = Image.open(TEMPLATE_PATH).convert("RGB")
-
     poster = ImageOps.exif_transpose(poster)
 
-    # IMPORTANT:
-    # Remove the old sample photo before adding the new one.
+    # These coordinates are designed for the 1024 x 1536 template.
+    if poster.size != (1024, 1536):
+        raise ValueError(
+            "The poster template must be 1024 x 1536 pixels. "
+            f"Current size: {poster.width} x {poster.height}."
+        )
+
     poster = remove_original_photo(poster)
-
-    # Add the new uploaded photograph.
     poster = add_uploaded_photo(poster, uploaded_photo)
-
-    # Add the attendee's name.
     poster = add_name(poster, name)
-
-    # Add QR code.
     poster = add_qr_code(poster)
 
-    # Save the completed poster into memory.
     output = BytesIO()
-
     poster.save(output, format="PNG", optimize=True)
-
     output.seek(0)
 
     return output
@@ -402,7 +303,6 @@ def create_poster(name, uploaded_photo):
 
 @app.get("/")
 def index():
-
     return render_template("index.html", event_time=EVENT_TIME)
 
 
@@ -413,15 +313,14 @@ def index():
 
 @app.post("/generate")
 def generate():
-
     name = request.form.get("name", "").strip()
-
     photo_file = request.files.get("photo")
 
-    # Validate name.
     if not name:
         return render_template(
-            "index.html", event_time=EVENT_TIME, error="Please enter your name."
+            "index.html",
+            event_time=EVENT_TIME,
+            error="Please enter your name.",
         ), 400
 
     if len(name) > 45:
@@ -431,10 +330,11 @@ def generate():
             error="Please keep your name to 45 characters or fewer.",
         ), 400
 
-    # Validate uploaded photo.
     if not photo_file or not photo_file.filename:
         return render_template(
-            "index.html", event_time=EVENT_TIME, error="Please choose a photograph."
+            "index.html",
+            event_time=EVENT_TIME,
+            error="Please choose a photograph.",
         ), 400
 
     if not allowed_file(photo_file.filename):
@@ -445,46 +345,44 @@ def generate():
         ), 400
 
     try:
-        # Verify that the uploaded file is a valid image.
         image = Image.open(photo_file.stream)
-
         image.verify()
 
-        # Reset the uploaded file stream.
         photo_file.stream.seek(0)
-
-        # Open the image again for processing.
         image = Image.open(photo_file.stream)
 
-        # Generate poster.
         poster_file = create_poster(name, image)
 
-    except (UnidentifiedImageError, OSError, ValueError):
+    except (UnidentifiedImageError, OSError, ValueError) as error:
+        app.logger.warning("Invalid uploaded image or poster: %s", error)
         return render_template(
             "index.html",
             event_time=EVENT_TIME,
-            error="That image could not be opened. Please try another JPG or PNG.",
+            error=(
+                "The image could not be processed, or the poster template "
+                "has the wrong dimensions. Please check the files and try again."
+            ),
         ), 400
 
     except FileNotFoundError as error:
         app.logger.error(str(error))
-
         return render_template(
             "index.html",
             event_time=EVENT_TIME,
-            error="The poster template could not be found. Please contact the administrator.",
+            error=(
+                "The poster template could not be found. "
+                "Please contact the administrator."
+            ),
         ), 500
 
     except Exception:
         app.logger.exception("Poster generation failed.")
-
         return render_template(
             "index.html",
             event_time=EVENT_TIME,
             error="Something went wrong while generating your poster. Please try again.",
         ), 500
 
-    # Create a safe download filename.
     safe_name = secure_filename("_".join(name.split()))[:45] or "attendee"
 
     return send_file(
@@ -502,7 +400,6 @@ def generate():
 
 @app.get("/health")
 def health():
-
     return {"status": "ok"}
 
 
@@ -511,4 +408,8 @@ def health():
 # --------------------------------------------------
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        debug=False,
+    )
