@@ -54,10 +54,13 @@ ERASE_RADIUS = 260
 QR_BOX = (680, 1265, 872, 1445)
 
 # Name position: adjust to match your actual name plaque.
-NAME_CENTER = (510, 1040)
+NAME_CENTER = (510, 1060)
 NAME_MAX_WIDTH = 480
 NAME_MAX_SIZE = 64
 NAME_MIN_SIZE = 24
+NAME_LINE_SPACING = 10
+NAME_TOP_PADDING = 12
+NAME_BOTTOM_PADDING = 20
 
 # Name text color.
 NAME_COLOR = (255, 255, 255)
@@ -88,18 +91,45 @@ def load_font(size):
     return ImageFont.load_default()
 
 
+def wrap_name_lines(draw, name, font, max_width):
+    cleaned_name = " ".join(name.split())
+
+    if not cleaned_name:
+        return [""]
+
+    words = cleaned_name.split()
+    lines = [words[0]]
+
+    for word in words[1:]:
+        candidate = f"{lines[-1]} {word}"
+        bbox = draw.textbbox((0, 0), candidate, font=font)
+        if bbox[2] - bbox[0] <= max_width:
+            lines[-1] = candidate
+        else:
+            lines.append(word)
+
+    return lines
+
+
 def fit_name(draw, name, max_width):
+    cleaned_name = " ".join(name.split())
+    if not cleaned_name:
+        return load_font(NAME_MIN_SIZE), [""]
+
     for size in range(NAME_MAX_SIZE, NAME_MIN_SIZE - 1, -1):
         font = load_font(size)
+        lines = wrap_name_lines(draw, cleaned_name, font, max_width)
 
-        bbox = draw.textbbox((0, 0), name, font=font)
-
+        wrapped = "\n".join(lines)
+        bbox = draw.multiline_textbbox((0, 0), wrapped, font=font, spacing=NAME_LINE_SPACING)
         text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
 
-        if text_width <= max_width:
-            return font
+        if text_width <= max_width and text_height <= 180:
+            return font, lines
 
-    return load_font(NAME_MIN_SIZE)
+    font = load_font(NAME_MIN_SIZE)
+    return font, wrap_name_lines(draw, cleaned_name, font, max_width)
 
 
 # --------------------------------------------------
@@ -215,11 +245,26 @@ def add_name(poster, name):
 
     draw = ImageDraw.Draw(poster)
 
-    font = fit_name(draw, name, NAME_MAX_WIDTH)
+    font, lines = fit_name(draw, name, NAME_MAX_WIDTH)
+    wrapped_name = "\n".join(lines)
+    bbox = draw.multiline_textbbox((0, 0), wrapped_name, font=font, spacing=NAME_LINE_SPACING)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
 
-    # Center the name horizontally.
-    draw.text(
-        NAME_CENTER, name, font=font, fill=NAME_COLOR, anchor="mm", stroke_width=0
+    # Keep the name below the photo and within the main poster body.
+    safe_top = max(NAME_CENTER[1] - text_height // 2, PHOTO_CENTER[1] + PHOTO_RADIUS + NAME_TOP_PADDING)
+    safe_bottom = 1460 - text_height - NAME_BOTTOM_PADDING
+    text_top = min(safe_top, safe_bottom)
+    text_left = NAME_CENTER[0] - text_width / 2
+
+    draw.multiline_text(
+        (text_left, text_top),
+        wrapped_name,
+        font=font,
+        fill=NAME_COLOR,
+        align="center",
+        spacing=NAME_LINE_SPACING,
+        stroke_width=0,
     )
 
     return poster
