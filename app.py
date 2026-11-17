@@ -53,14 +53,16 @@ ERASE_RADIUS = 260
 # QR code white panel at the bottom right.
 QR_BOX = (680, 1265, 872, 1445)
 
-# Name position: adjust to match your actual name plaque.
-NAME_CENTER = (510, 1060)
-NAME_MAX_WIDTH = 480
-NAME_MAX_SIZE = 64
-NAME_MIN_SIZE = 24
-NAME_LINE_SPACING = 10
-NAME_TOP_PADDING = 12
-NAME_BOTTOM_PADDING = 20
+# Name position: keep the text centered inside the plaque below the photo.
+NAME_CENTER = (510, 1065)
+NAME_MAX_WIDTH = 440
+NAME_MAX_SIZE = 62
+NAME_MIN_SIZE = 22
+NAME_LINE_SPACING = 8
+NAME_TOP_PADDING = 18
+NAME_BOTTOM_PADDING = 30
+NAME_MIN_TOP = PHOTO_CENTER[1] + PHOTO_RADIUS + 20
+NAME_MAX_BOTTOM = 1205
 
 # Name text color.
 NAME_COLOR = (255, 255, 255)
@@ -251,10 +253,10 @@ def add_name(poster, name):
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
 
-    # Keep the name below the photo and within the main poster body.
-    safe_top = max(NAME_CENTER[1] - text_height // 2, PHOTO_CENTER[1] + PHOTO_RADIUS + NAME_TOP_PADDING)
-    safe_bottom = 1460 - text_height - NAME_BOTTOM_PADDING
-    text_top = min(safe_top, safe_bottom)
+    # Keep the name inside the plaque band beneath the photo.
+    safe_top = max(NAME_CENTER[1] - text_height // 2, NAME_MIN_TOP + NAME_TOP_PADDING)
+    safe_bottom = NAME_MAX_BOTTOM - text_height - NAME_BOTTOM_PADDING
+    text_top = min(max(safe_top, NAME_MIN_TOP), safe_bottom)
     text_left = NAME_CENTER[0] - text_width / 2
 
     draw.multiline_text(
